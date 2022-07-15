@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #define LSH_RL_BUFSIZE 1024
 #define LSH_TOK_BUFSIZE 64
@@ -9,6 +10,7 @@
 void lsh_loop(void);
 char *lsh_read_line(void);
 char **lsh_split_line(char *line);
+int lsh_launch(char **args);
 
 int main (int argc, char *argv[]) {
 	// Load config files, if any.
@@ -110,4 +112,31 @@ char **lsh_split_line(char *line)
 	tokens[position] = NULL;
 	return tokens;
 			
+}
+
+int lsh_launch(char **args)
+{
+	pid_t pid; 
+	pid_t wpid;
+	int status;
+
+	pid = fork();
+
+	if (pid == 0) {
+		// child process
+		if (execvp(args[0], args) == -1) {
+			perror("lsh");
+		}
+		exit(EXIT_FAILURE);
+	} else if (pid < 0) {
+		// Error forking
+		perror("lsh");
+	} else {
+		// parent process
+		do {
+			wpid = waitpid(pid, &status, WUNTRACED);
+		} while (!WIFEXITED(status) && !WIFSIGNALED(status));
+	}
+	
+	return 1;		
 }
